@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://fav.farm/👩‍🍳">
+  <title>Tomorrow's Tadka | What should I cook tomorrow?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=DM+Sans:wght@400;500;700&family=Caveat:wght@600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --tile: #F7F8F4;
+      --grout: #E3E7DF;
+      --ink: #1F2A44;
+      --muted: #5B6578;
+      --tomato: #D8402F;
+      --butter: #F6C945;
+      --herb: #3E7D4F;
+      --board: #25332D;
+      --chalk: #F4F1E8;
+      --card: #FFFFFF;
+      --line: #D9DDD3;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--ink);
+      line-height: 1.55;
+      background-color: var(--tile);
+      background-image: linear-gradient(var(--grout) 1px, transparent 1px), linear-gradient(90deg, var(--grout) 1px, transparent 1px);
+      background-size: 84px 42px;
+      padding: 0 16px 60px;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: 'Fraunces', serif
+    }
+
+    /* header */
+    header {
+      text-align: center;
+      padding: 40px 0 22px
+    }
+
+    .logo {
+      font-size: 2.8rem;
+      line-height: 1
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 6vw, 3rem);
+      font-weight: 800;
+      color: var(--tomato);
+      margin-top: 6px
+    }
+
+    .about {
+      max-width: 520px;
+      margin: 8px auto 0;
+      color: var(--muted)
+    }
+
+    /* chalkboard question */
+    .board {
+      background: var(--board);
+      color: var(--chalk);
+      border: 10px solid #8A5A35;
+      border-radius: 10px;
+      padding: 26px 20px;
+      text-align: center;
+      margin: 20px 0 26px;
+      box-shadow: 0 8px 0 #6c4426;
+    }
+
+    .board small {
+      font-family: 'Caveat', cursive;
+      font-size: 1.4rem;
+      color: var(--butter)
+    }
+
+    .board h2 {
+      font-size: clamp(1.7rem, 5.5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-top: 2px
+    }
+
+    .board h2 span {
+      font-family: 'Caveat', cursive;
+      font-weight: 600;
+      color: var(--butter)
+    }
+
+    /* panels */
+    .panel {
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 6px 6px 0 var(--ink)
+    }
+
+    .pill {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: #EEF0E8;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      padding: 4px;
+      margin-bottom: 20px
+    }
+
+    .pill .thumb {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      background: var(--tomato);
+      border-radius: 999px;
+      transition: transform .3s cubic-bezier(.6, -.2, .3, 1.2)
+    }
+
+    .pill[data-mode="leftover"] .thumb {
+      transform: translateX(100%)
+    }
+
+    .pill button {
+      position: relative;
+      z-index: 1;
+      border: 0;
+      background: none;
+      font: 700 1rem 'DM Sans';
+      padding: 11px 8px;
+      cursor: pointer;
+      color: var(--ink);
+      transition: color .25s
+    }
+
+    .pill button[aria-pressed="true"] {
+      color: #fff
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-bottom: 16px
+    }
+
+    .ctx {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px
+    }
+
+    .chip {
+      background: #FFF6D6;
+      border: 1.5px solid var(--butter);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: .88rem;
+      font-weight: 500
+    }
+
+    .cityrow {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px
+    }
+
+    .cityrow input {
+      flex: 1
+    }
+
+    .cityrow button {
+      border: 2px solid var(--ink);
+      background: #fff;
+      font: 700 .9rem 'DM Sans';
+      padding: 0 14px;
+      border-radius: 10px;
+      cursor: pointer
+    }
+
+    .cityrow button:hover {
+      background: var(--butter)
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      font-size: .92rem;
+      margin-bottom: 5px
+    }
+
+    textarea,
+    select,
+    input[type=text] {
+      width: 100%;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px
+    }
+
+    textarea:focus,
+    select:focus,
+    input:focus,
+    button:focus-visible {
+      outline: 3px solid var(--butter);
+      border-color: var(--ink)
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 14px
+    }
+
+    .full {
+      grid-column: 1/-1
+    }
+
+    .hidden {
+      display: none
+    }
+
+    .go {
+      margin-top: 20px;
+      width: 100%;
+      border: 2px solid var(--ink);
+      background: var(--butter);
+      color: var(--ink);
+      font: 800 1.1rem 'Fraunces', serif;
+      padding: 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 var(--ink);
+      transition: transform .1s, box-shadow .1s
+    }
+
+    .go:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--ink)
+    }
+
+    .go:disabled {
+      opacity: .6;
+      cursor: wait
+    }
+
+    /* results */
+    #results {
+      margin-top: 30px;
+      min-height: 260px
+    }
+
+    .stage {
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 6px 6px 0 var(--ink)
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 10px
+    }
+
+    .empty b {
+      display: block;
+      font: 800 1.3rem 'Fraunces', serif;
+      color: var(--ink)
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px 10px
+    }
+
+    .pot {
+      position: relative;
+      width: 150px;
+      height: 130px;
+      margin: 0 auto
+    }
+
+    .steam {
+      position: absolute;
+      bottom: 92px;
+      width: 10px;
+      height: 34px;
+      border-radius: 10px;
+      background: #cfd6dc;
+      opacity: 0;
+      animation: rise 2s infinite
+    }
+
+    .steam:nth-child(1) {
+      left: 42px
+    }
+
+    .steam:nth-child(2) {
+      left: 70px;
+      animation-delay: .6s
+    }
+
+    .steam:nth-child(3) {
+      left: 98px;
+      animation-delay: 1.2s
+    }
+
+    @keyframes rise {
+      0% {
+        transform: translateY(14px) scaleY(.6);
+        opacity: 0
+      }
+
+      40% {
+        opacity: .9
+      }
+
+      100% {
+        transform: translateY(-22px) scaleY(1.2);
+        opacity: 0
+      }
+    }
+
+    .potbody {
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      width: 110px;
+      height: 62px;
+      background: var(--ink);
+      border-radius: 6px 6px 36px 36px;
+      animation: bob 1s ease-in-out infinite
+    }
+
+    .potbody::before,
+    .potbody::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      width: 22px;
+      height: 10px;
+      border: 5px solid var(--ink);
+      border-radius: 10px
+    }
+
+    .potbody::before {
+      left: -24px;
+      border-right: 0
+    }
+
+    .potbody::after {
+      right: -24px;
+      border-left: 0
+    }
+
+    .lid {
+      position: absolute;
+      bottom: 58px;
+      left: 14px;
+      width: 122px;
+      height: 16px;
+      background: var(--tomato);
+      border-radius: 10px;
+      transform-origin: left bottom;
+      animation: lid 1s ease-in-out infinite
+    }
+
+    .lid::after {
+      content: "";
+      position: absolute;
+      top: -9px;
+      left: 50px;
+      width: 22px;
+      height: 10px;
+      background: var(--tomato);
+      border-radius: 10px 10px 0 0
+    }
+
+    @keyframes bob {
+      50% {
+        transform: translateY(-3px)
+      }
+    }
+
+    @keyframes lid {
+      50% {
+        transform: rotate(-4deg) translateY(-3px)
+      }
+    }
+
+    .loading p {
+      font: 600 1.5rem 'Caveat', cursive;
+      margin-top: 14px;
+      min-height: 2em
+    }
+
+    .err {
+      border-color: var(--tomato)
+    }
+
+    .err b {
+      color: var(--tomato)
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px
+    }
+
+    .tab {
+      flex: 1 1 180px;
+      border: 2px solid var(--ink);
+      background: #fff;
+      color: var(--ink);
+      font: 700 .98rem 'DM Sans';
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left
+    }
+
+    .tab[aria-selected="true"] {
+      background: var(--ink);
+      color: #fff
+    }
+
+    .recipe {
+      border: 2px dashed var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      background: linear-gradient(transparent 31px, #EEF0E8 32px) 0 0/100% 32px #FFFEFA;
+      animation: flip .35s ease
+    }
+
+    @keyframes flip {
+      from {
+        opacity: 0;
+        transform: rotateX(-12deg)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .recipe h3 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      line-height: 1.2
+    }
+
+    .vibe {
+      color: var(--muted);
+      font-style: italic;
+      margin: 4px 0 12px
+    }
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .meta span {
+      background: var(--herb);
+      color: #fff;
+      border-radius: 999px;
+      padding: 3px 12px;
+      font-size: .85rem;
+      font-weight: 700
+    }
+
+    .recipe h4 {
+      font: 800 1.1rem 'Fraunces', serif;
+      margin: 16px 0 6px;
+      color: var(--tomato)
+    }
+
+    .recipe ul,
+    .recipe ol {
+      padding-left: 22px
+    }
+
+    .recipe li {
+      margin-bottom: 6px
+    }
+
+    .tools {
+      margin-top: 16px
+    }
+
+    .tools button {
+      border: 2px solid var(--ink);
+      background: #fff;
+      font: 700 .9rem 'DM Sans';
+      padding: 7px 14px;
+      border-radius: 999px;
+      cursor: pointer
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+      margin-top: 34px
+    }
+
+    @media(max-width:560px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+
+      .panel,
+      .stage {
+        padding: 16px
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        animation: none !important;
+        transition: none !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <header>
+      <div class="logo" aria-hidden="true">👩‍🍳</div>
+      <h1>Tomorrow's Tadka</h1>
+      <p class="about">Tell us what's in your kitchen, or let us read the weather and season. We'll hand you two recipes
+        you can actually cook.</p>
+    </header>
+
+    <section class="board" aria-label="Main question">
+      <small>the question we all ask every evening</small>
+      <h2>What should I cook <span>tomorrow?</span></h2>
+    </section>
+
+    <form class="panel" id="form" autocomplete="off">
+      <div class="pill" id="pill" data-mode="surprise" role="group" aria-label="Choose how to get a recipe">
+        <span class="thumb"></span>
+        <button type="button" data-mode="surprise" aria-pressed="true">🎲 Surprise Me</button>
+        <button type="button" data-mode="leftover" aria-pressed="false">🥘 Leftover Magic</button>
+      </div>
+
+      <div id="surpriseBox">
+        <p class="hint">We pick dishes that suit your city, today's weather and the season's vegetables.</p>
+        <label for="city">Your city</label>
+        <div class="cityrow">
+          <input type="text" id="city" placeholder="e.g. Pune">
+          <button type="button" id="cityBtn">Check weather</button>
+          <button type="button" id="geoBtn" title="Use my device location">📍</button>
+        </div>
+        <div class="ctx" id="ctx"></div>
+      </div>
+
+      <div id="leftoverBox" class="hidden">
+        <label for="ingredients">What's in your kitchen?</label>
+        <textarea id="ingredients" placeholder="e.g. leftover rice, 2 tomatoes, paneer, curd, onions"></textarea>
+      </div>
+
+      <div class="grid">
+        <div><label for="diet">Dietary preference</label>
+          <select id="diet">
+            <option>None</option>
+            <option>Vegetarian</option>
+            <option>Vegan</option>
+            <option>Jain (no onion or garlic)</option>
+            <option>Eggetarian</option>
+            <option>High protein</option>
+            <option>Low carb</option>
+            <option>Gluten-free</option>
+          </select>
+        </div>
+        <div><label for="meal">Meal type</label>
+          <select id="meal">
+            <option>Any</option>
+            <option>Breakfast</option>
+            <option>Lunch</option>
+            <option>Evening snack</option>
+            <option>Dinner</option>
+            <option>Tiffin / lunchbox</option>
+          </select>
+        </div>
+        <div><label for="cuisine">Cuisine</label>
+          <select id="cuisine">
+            <option>Home style</option>
+            <option>Maharashtrian</option>
+            <option>North Indian</option>
+            <option>South Indian</option>
+            <option>Gujarati</option>
+            <option>Bengali</option>
+            <option>Indo-Chinese</option>
+            <option>Italian</option>
+            <option>Mexican</option>
+          </select>
+        </div>
+        <div><label for="spice">Spice level</label>
+          <select id="spice">
+            <option>Mild</option>
+            <option selected>Medium</option>
+            <option>Spicy</option>
+          </select>
+        </div>
+        <div><label for="time">Time you have</label>
+          <select id="time">
+            <option value="15">Under 15 min</option>
+            <option value="30" selected>Around 30 min</option>
+            <option value="60">About an hour</option>
+            <option value="90">No rush</option>
+          </select>
+        </div>
+        <div><label for="servings">Servings</label>
+          <select id="servings">
+            <option>1</option>
+            <option selected>2</option>
+            <option>4</option>
+            <option>6</option>
+            <option>8</option>
+          </select>
+        </div>
+        <div class="full"><label for="notes">Anything else? (optional)</label>
+          <input type="text" id="notes" placeholder="e.g. kids will eat it, no deep frying, allergic to peanuts">
+        </div>
+      </div>
+
+      <button class="go" id="go" type="submit">Cook up my ideas</button>
+    </form>
+
+    <section id="results" aria-live="polite"></section>
+    <footer id="foot"></footer>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let mode = 'surprise', ctx = {}, recipes = [], timer;
+
+    const lines = [
+      "Chopping onions, no tears allowed...",
+      "Asking the spice box for advice...",
+      "Tasting, adjusting, tasting again...",
+      "Your kitchen is about to smell amazing...",
+      "Stirring up two ideas for tomorrow..."
+    ];
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Mode slider
+    document.querySelectorAll('#pill button').forEach(b => b.onclick = () => {
+      mode = b.dataset.mode;
+      $('pill').dataset.mode = mode;
+      document.querySelectorAll('#pill button').forEach(x => x.setAttribute('aria-pressed', x === b));
+      $('surpriseBox').classList.toggle('hidden', mode !== 'surprise');
+      $('leftoverBox').classList.toggle('hidden', mode !== 'leftover');
+      $('go').textContent = mode === 'surprise' ? 'Cook up my ideas' : 'Turn my leftovers into dinner';
+    });
+
+    // City, weather and season
+    function renderCtx(c) {
+      ctx = { city: c.city, weather: c.weather, season: c.season };
+      $('ctx').innerHTML =
+        (c.city ? `<span class="chip">📍 ${esc(c.city)}</span>` : '') +
+        (c.weather ? `<span class="chip">🌤️ ${esc(c.weather)}</span>` : '') +
+        `<span class="chip">🌿 ${esc(c.season)} season</span>` +
+        (c.error ? `<span class="chip">⚠️ ${esc(c.error)}</span>` : '');
+      const f = c.provider === 'groq' ? 'Powered by Llama 3.1 via Groq' : 'Powered by Llama running privately on your own computer';
+      $('foot').textContent = f;
+    }
+    async function loadCtx(query = '') {
+      try { renderCtx(await (await fetch('/api/context' + query)).json()); }
+      catch { $('ctx').innerHTML = '<span class="chip">Could not reach the server.</span>'; }
+    }
+    $('cityBtn').onclick = () => {
+      const city = $('city').value.trim();
+      if (!city) return $('city').focus();
+      try { localStorage.setItem('city', city); } catch { }
+      loadCtx('?city=' + encodeURIComponent(city));
+    };
+    $('city').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('cityBtn').click(); } });
+    $('geoBtn').onclick = () => navigator.geolocation
+      ? navigator.geolocation.getCurrentPosition(
+        p => loadCtx(`?lat=${p.coords.latitude.toFixed(2)}&lon=${p.coords.longitude.toFixed(2)}`),
+        () => $('ctx').innerHTML += '<span class="chip">Location permission denied. Type your city instead.</span>')
+      : null;
+    let saved = ''; try { saved = localStorage.getItem('city') || ''; } catch { }
+    $('city').value = saved;
+    loadCtx(saved ? '?city=' + encodeURIComponent(saved) : '');
+
+    function showEmpty() {
+      $('results').innerHTML = `<div class="stage empty"><b>Your recipes will appear here</b>Pick a mode above and press the button.</div>`;
+    }
+
+    function showLoading() {
+      let i = 0;
+      $('results').innerHTML = `<div class="stage loading"><div class="pot"><i class="steam"></i><i class="steam"></i><i class="steam"></i><div class="lid"></div><div class="potbody"></div></div><p id="line">${lines[0]}</p></div>`;
+      clearInterval(timer);
+      timer = setInterval(() => { const l = $('line'); if (l) l.textContent = lines[++i % lines.length]; }, 2200);
+    }
+
+    function showError(msg) {
+      clearInterval(timer);
+      $('results').innerHTML = `<div class="stage empty err"><b>The kitchen hit a snag</b>${esc(msg)}</div>`;
+    }
+
+    function showRecipes(active = 0) {
+      clearInterval(timer);
+      const r = recipes[active];
+      const tabs = recipes.map((x, i) =>
+        `<button class="tab" role="tab" data-i="${i}" aria-selected="${i === active}">${esc(x.emoji || '🍽️')} ${esc(x.name)}</button>`).join('');
+      $('results').innerHTML = `<div class="stage">
+    <div class="tabs" role="tablist">${tabs}</div>
+    <article class="recipe">
+      <h3>${esc(r.emoji || '')} ${esc(r.name)}</h3>
+      <p class="vibe">${esc(r.vibe)}</p>
+      <div class="meta">${r.time ? `<span>⏱ ${esc(r.time)}</span>` : ''}${r.servings ? `<span>🍽 Serves ${esc(r.servings)}</span>` : ''}</div>
+      <h4>Ingredients</h4><ul>${(r.ingredients || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h4>Method</h4><ol>${(r.steps || []).map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+      <div class="tools"><button type="button" id="copy">Copy recipe</button></div>
+    </article></div>`;
+      document.querySelectorAll('.tab').forEach(t => t.onclick = () => showRecipes(+t.dataset.i));
+      $('copy').onclick = e => {
+        const text = `${r.name}\n${r.vibe}\n\nIngredients:\n- ${(r.ingredients || []).join('\n- ')}\n\nMethod:\n${(r.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}`;
+        navigator.clipboard.writeText(text).then(() => e.target.textContent = 'Copied!');
+      };
+    }
+
+    $('form').onsubmit = async e => {
+      e.preventDefault();
+      if (mode === 'leftover' && !$('ingredients').value.trim()) {
+        $('ingredients').focus();
+        return showError('List at least one ingredient first, then try again.');
+      }
+      const payload = {
+        mode, ...ctx,
+        ingredients: $('ingredients').value, diet: $('diet').value, meal: $('meal').value,
+        cuisine: $('cuisine').value, spice: $('spice').value, time: $('time').value,
+        servings: $('servings').value, notes: $('notes').value
+      };
+      $('go').disabled = true;
+      showLoading();
+      $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try {
+        const res = await fetch('/api/recipes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+        recipes = data.recipes;
+        showRecipes(0);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        $('go').disabled = false;
+      }
+    };
+
+    showEmpty();
+  </script>
+</body>
+
+</html>
