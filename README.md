@@ -1,5 +1,3 @@
-# Tomorrow's Tadka
-
 # 🍳 Tomorrow's Tadka
 
 *"The question we all ask every evening: What should I cook tomorrow?"*
