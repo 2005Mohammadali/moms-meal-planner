@@ -1,8 +1,19 @@
+"""Tomorrow's Tadka backend.
+
+Two modes, chosen with environment variables:
+  PROVIDER=ollama (default)  -> Llama runs on your own computer. Nothing is sent to an AI company.
+  PROVIDER=groq              -> hosted Llama via Groq's free tier. Needs GROQ_API_KEY.
+  PROVIDER=openai            -> any OpenAI-compatible host. Needs LLM_BASE_URL, LLM_API_KEY, LLM_MODEL.
+Optional:
+  OFFLINE=1                  -> skip weather lookups (no network calls at all with Ollama)
+  RATE_LIMIT_PER_HOUR=10     -> per-visitor cap so a public demo can't burn your free quota
+"""
 import os
 import json
 import time
 import datetime
 import urllib.parse
+import urllib.error
 import urllib.request
 from collections import defaultdict, deque
 
@@ -11,8 +22,13 @@ from flask import Flask, jsonify, request, send_from_directory
 PROVIDER = os.getenv("PROVIDER", "ollama").lower()
 OFFLINE = os.getenv("OFFLINE", "0") == "1"
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")  # open-weight (Apache 2.0)
 GROQ_KEY = os.getenv("GROQ_API_KEY", "")
+# Generic hosted option (PROVIDER=openai): any OpenAI-compatible API, e.g. OpenRouter, Cerebras, Together
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "")
+HOSTED = PROVIDER in ("groq", "openai")
 RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_HOUR", "10"))
 
 app = Flask(__name__, static_folder=None)  # only "/" and the API are public, not the whole folder
@@ -75,6 +91,7 @@ def context():
     """Season + provider info always. City/weather only when the user gives a city or coordinates."""
     ctx = {
         "provider": PROVIDER,
+        "model": {"groq": GROQ_MODEL, "openai": LLM_MODEL}.get(PROVIDER, OLLAMA_MODEL),
         "season": current_season(datetime.date.today().month),
         "city": "",
         "weather": "",
@@ -143,23 +160,40 @@ Give exactly 2 different recipes. Reply with ONLY valid JSON in this shape:
 
 
 def call_llm(prompt):
-    if PROVIDER == "groq":
-        if not GROQ_KEY:
-            raise RuntimeError("GROQ_API_KEY is not set on the server.")
-        body = json.dumps({
-            "model": GROQ_MODEL,
+    if HOSTED:
+        if PROVIDER == "groq":
+            url, key, model = "https://api.groq.com/openai/v1/chat/completions", GROQ_KEY, GROQ_MODEL
+        else:
+            url, key, model = LLM_BASE_URL + "/chat/completions", LLM_API_KEY, LLM_MODEL
+        if not key or not model or not url.startswith("http"):
+            raise RuntimeError("API key / model / base URL is not set on the server.")
+        payload = {
+            "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "response_format": {"type": "json_object"},
-            "max_tokens": 1500,
+            "max_tokens": 4000,  # reasoning models spend tokens thinking before they answer
             "temperature": 0.8,
-        }).encode()
-        req = urllib.request.Request(
-            "https://api.groq.com/openai/v1/chat/completions",
-            data=body,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {GROQ_KEY}"},
-        )
-        with urllib.request.urlopen(req, timeout=40) as r:
-            return json.loads(r.read().decode())["choices"][0]["message"]["content"]
+        }
+        if "gpt-oss" in model:
+            payload["reasoning_effort"] = os.getenv("REASONING_EFFORT", "low")
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}",
+                   "User-Agent": "TomorrowsTadka/1.0", "Accept": "application/json"}
+
+        def send(p):
+            req = urllib.request.Request(url, data=json.dumps(p).encode(), headers=headers)
+            with urllib.request.urlopen(req, timeout=50) as r:
+                return json.loads(r.read().decode())["choices"][0]["message"].get("content") or ""
+
+        try:
+            text = send(payload)
+        except urllib.error.HTTPError as e:
+            if e.code != 400:
+                raise
+            payload.pop("response_format", None)  # some models reject JSON mode; the prompt still asks for JSON
+            text = send(payload)
+        if not text.strip():
+            raise ValueError("model returned an empty answer")
+        return text
 
     import ollama  # imported lazily so the hosted deploy doesn't need it
     resp = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "user", "content": prompt}], format="json")
@@ -171,18 +205,27 @@ def recipes():
     data = request.get_json(force=True, silent=True) or {}
     if data.get("mode") == "leftover" and not data.get("ingredients", "").strip():
         return jsonify({"error": "Please list at least one ingredient."}), 400
-    if PROVIDER == "groq" and too_many_requests():
+    if HOSTED and too_many_requests():
         return jsonify({"error": "You have used your recipe quota for this hour. Please come back a little later."}), 429
     try:
-        parsed = json.loads(call_llm(build_prompt(data)))
+        raw = call_llm(build_prompt(data))
+        parsed = json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
         items = parsed.get("recipes", [])
         if not items:
             raise ValueError("no recipes returned")
         return jsonify({"recipes": items[:2]})
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = json.loads(e.read().decode()).get("error", {}).get("message", "")
+        except Exception:
+            pass
+        print(f"LLM provider returned HTTP {e.code}: {detail}", flush=True)  # visible in Render logs
+        return jsonify({"error": f"The AI service refused the request (HTTP {e.code}). {detail}".strip()}), 502
     except json.JSONDecodeError:
         return jsonify({"error": "The chef scribbled something unreadable. Please try again."}), 502
     except Exception as e:
-        hint = "Is Ollama running?" if PROVIDER == "ollama" else "The AI service is busy or its free quota is used up."
+        hint = "Is Ollama running?" if PROVIDER == "ollama" else "The AI service is busy, misconfigured, or its free quota is used up."
         return jsonify({"error": f"Could not reach the kitchen. {hint} ({type(e).__name__})"}), 500
 
 
